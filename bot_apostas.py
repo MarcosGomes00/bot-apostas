@@ -70,20 +70,15 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text=f"{query.message.text}\n\n✅ Marcado como usada"
         )
 
-async def main():
+def main():
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(CallbackQueryHandler(callback_handler))
 
-    print("Enviando call teste...")
+    print("Bot iniciado...")
 
-    await enviar_call(application, 1, "Teste x Teste", "Over 2.5", 1.90, 1, "Alta", "Bet365")
+    application.run_polling()
 
-    print("Call enviada.")
 
-    await application.run_polling()
 if __name__ == "__main__":
-    import asyncio
-    loop = asyncio.get_event_loop()
-    loop.create_task(main())
-    loop.run_forever()
+    main()
