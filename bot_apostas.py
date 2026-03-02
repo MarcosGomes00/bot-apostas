@@ -1,11 +1,10 @@
 import os
 import requests
 from datetime import datetime
-from telegram import Bot
-from telegram.ext import Application
+from telegram.ext import Application, ContextTypes
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-GROUP_ID = int(os.getenv("GROUP_ID"))
+TOKEN = "8413563055:AAE-OrByO3ErSbfU882ExbhzgzVy0T1XKMQ"
+GROUP_ID = -1003773773236
 
 API_KEY = "1"
 
@@ -41,12 +40,11 @@ def buscar_jogos_hoje():
     return jogos
 
 
-async def enviar_analises():
-    bot = Bot(TOKEN)
+async def enviar_analises(context: ContextTypes.DEFAULT_TYPE):
     jogos = buscar_jogos_hoje()
 
     if not jogos:
-        await bot.send_message(
+        await context.bot.send_message(
             chat_id=GROUP_ID,
             text="⚠️ Nenhum jogo relevante hoje."
         )
@@ -60,7 +58,7 @@ async def enviar_analises():
             f"🎯 Mercado sugerido: Over 2.5"
         )
 
-        await bot.send_message(
+        await context.bot.send_message(
             chat_id=GROUP_ID,
             text=mensagem
         )
@@ -69,7 +67,8 @@ async def enviar_analises():
 def main():
     app = Application.builder().token(TOKEN).build()
 
-    app.create_task(enviar_analises())
+    # Executa uma vez ao iniciar
+    app.job_queue.run_once(enviar_analises, when=1)
 
     print("Bot iniciado com sucesso.")
     app.run_polling()
@@ -77,4 +76,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
