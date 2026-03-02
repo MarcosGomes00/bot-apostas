@@ -4,8 +4,8 @@ from datetime import datetime
 from telegram import Bot
 from telegram.ext import Application
 
-TOKEN = os.getenv("8413563055:AAE-OrByO3ErSbfU882ExbhzgzVy0T1XKMQ")
-GROUP_ID = int(os.getenv(-1003773773236))
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+GROUP_ID = int(os.getenv("GROUP_ID"))
 
 API_KEY = "1"
 
@@ -16,10 +16,6 @@ LIGAS_PRIORITARIAS = [
     "German Bundesliga",
     "Brazil Serie A"
 ]
-
-# ================================
-# BUSCAR JOGOS
-# ================================
 
 def buscar_jogos_hoje():
     hoje = datetime.now().strftime("%Y-%m-%d")
@@ -46,10 +42,6 @@ def buscar_jogos_hoje():
 
     return jogos
 
-# ================================
-# SCORE BASE
-# ================================
-
 def calcular_score_base(jogo):
     score = 60
 
@@ -64,10 +56,6 @@ def calcular_score_base(jogo):
 
     return min(score, 95)
 
-# ================================
-# ENVIO
-# ================================
-
 async def enviar_analises():
     bot = Bot(token=TOKEN)
     jogos = buscar_jogos_hoje()
@@ -80,40 +68,21 @@ async def enviar_analises():
 
     for jogo in jogos:
         score = calcular_score_base(jogo)
-
         if score >= 75:
             candidatos.append((jogo, score))
 
     candidatos.sort(key=lambda x: x[1], reverse=True)
 
-    # Simples
     for jogo, score in candidatos[:2]:
         mensagem = (
             f"📊 ANÁLISE AUTOMÁTICA\n\n"
             f"🏆 Liga: {jogo['liga']}\n"
             f"⚽ {jogo['casa']} x {jogo['fora']}\n\n"
             f"🔥 Score: {score}%\n"
-            f"🎯 Mercado sugerido: Over 2.5\n"
+            f"🎯 Mercado sugerido: Over 2.5"
         )
 
         await bot.send_message(chat_id=GROUP_ID, text=mensagem)
-
-    # Múltipla
-    if len(candidatos) >= 2 and candidatos[0][1] >= 85 and candidatos[1][1] >= 85:
-        jogo1 = candidatos[0][0]
-        jogo2 = candidatos[1][0]
-
-        mensagem_multipla = (
-            f"🔥 MÚLTIPLA DO DIA\n\n"
-            f"1️⃣ {jogo1['casa']} x {jogo1['fora']} - Over 2.5\n"
-            f"2️⃣ {jogo2['casa']} x {jogo2['fora']} - Over 2.5\n"
-        )
-
-        await bot.send_message(chat_id=GROUP_ID, text=mensagem_multipla)
-
-# ================================
-# MAIN
-# ================================
 
 def main():
     app = Application.builder().token(TOKEN).build()
