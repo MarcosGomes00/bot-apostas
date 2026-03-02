@@ -1,14 +1,16 @@
-import asyncio
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CallbackQueryHandler
+import random
+import time
+import threading
 
 TOKEN = '8413563055:AAE-OrByO3ErSbfU882ExbhzgzVy0T1XKMQ'
 GROUP_ID = -1003773773236
 
 palpites = {}
-import random
 
-async def envio_automatico(application):
+
+def envio_automatico(bot):
     jogos = [
         ("Barcelona x PSG", "Over 2.5", 1.90),
         ("City x Bayern", "Ambas Marcam", 1.75),
@@ -20,8 +22,8 @@ async def envio_automatico(application):
     while True:
         jogo = random.choice(jogos)
 
-        await enviar_call(
-            application,
+        enviar_call(
+            bot,
             jogo_id,
             jogo[0],
             jogo[1],
@@ -32,11 +34,15 @@ async def envio_automatico(application):
         )
 
         jogo_id += 1
+        time.sleep(3600)  # 1 hora
 
-        await asyncio.sleep(3600)
 
-async def enviar_call(application, jogo_id, jogo, mercado, odd, stake, confianca, melhor_casa):
-    palpites[jogo_id] = {'jogo': jogo, 'mercado': mercado, 'status': 'ativo'}
+def enviar_call(bot, jogo_id, jogo, mercado, odd, stake, confianca, melhor_casa):
+    palpites[jogo_id] = {
+        'jogo': jogo,
+        'mercado': mercado,
+        'status': 'ativo'
+    }
 
     teclado = [[InlineKeyboardButton("Marcar como usada", callback_data=f"usar_{jogo_id}")]]
     markup = InlineKeyboardMarkup(teclado)
@@ -50,15 +56,16 @@ async def enviar_call(application, jogo_id, jogo, mercado, odd, stake, confianca
         f"✅ Melhor casa: {melhor_casa}"
     )
 
-    await application.bot.send_message(
+    bot.send_message(
         chat_id=GROUP_ID,
         text=mensagem,
         reply_markup=markup
     )
 
-async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+def callback_handler(update, context):
     query = update.callback_query
-    await query.answer()
+    query.answer()
 
     data = query.data
 
@@ -66,18 +73,25 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         jogo_id = int(data.split("_")[1])
         palpites[jogo_id]['status'] = 'usado'
 
-        await query.edit_message_text(
+        query.edit_message_text(
             text=f"{query.message.text}\n\n✅ Marcado como usada"
         )
 
-def main():
-    application = ApplicationBuilder().token(TOKEN).build()
 
-    application.add_handler(CallbackQueryHandler(callback_handler))
+def main():
+    updater = Updater(TOKEN)
+    dp = updater.dispatcher
+
+    dp.add_handler(CallbackQueryHandler(callback_handler))
 
     print("Bot iniciado...")
 
-    application.run_polling()
+    # Thread para envio automático
+    thread = threading.Thread(target=envio_automatico, args=(updater.bot,))
+    thread.start()
+
+    updater.start_polling()
+    updater.idle()
 
 
 if __name__ == "__main__":
