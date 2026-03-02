@@ -1,12 +1,13 @@
 import os
 import requests
 from datetime import datetime
-from telegram.ext import Updater
+from telegram import Bot
+from telegram.ext import Application
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-GROUP_ID = int(os.getenv("GROUP_ID"))
+TOKEN = os.getenv("8413563055:AAE-OrByO3ErSbfU882ExbhzgzVy0T1XKMQ")
+GROUP_ID = int(os.getenv(-1003773773236))
 
-API_KEY = "1"  # TheSportsDB pública
+API_KEY = "1"
 
 LIGAS_PRIORITARIAS = [
     "English Premier League",
@@ -17,7 +18,7 @@ LIGAS_PRIORITARIAS = [
 ]
 
 # ================================
-# BUSCAR JOGOS DO DIA
+# BUSCAR JOGOS
 # ================================
 
 def buscar_jogos_hoje():
@@ -46,37 +47,33 @@ def buscar_jogos_hoje():
     return jogos
 
 # ================================
-# SISTEMA DE SCORE BASE (Evolutivo depois)
+# SCORE BASE
 # ================================
 
 def calcular_score_base(jogo):
     score = 60
 
-    # Times grandes tendem a jogos mais movimentados
     if any(time in jogo["casa"] for time in ["City", "Barcelona", "Real", "Bayern"]):
         score += 10
 
     if any(time in jogo["fora"] for time in ["City", "Barcelona", "Real", "Bayern"]):
         score += 10
 
-    # Liga ofensiva
     if "Premier" in jogo["liga"] or "Bundesliga" in jogo["liga"]:
         score += 10
 
-    if score > 95:
-        score = 95
-
-    return score
+    return min(score, 95)
 
 # ================================
-# ENVIO AUTOMÁTICO
+# ENVIO
 # ================================
 
-def enviar_analises(bot):
+async def enviar_analises():
+    bot = Bot(token=TOKEN)
     jogos = buscar_jogos_hoje()
 
     if not jogos:
-        bot.send_message(chat_id=GROUP_ID, text="⚠️ Nenhum jogo relevante encontrado hoje.")
+        await bot.send_message(chat_id=GROUP_ID, text="⚠️ Nenhum jogo relevante encontrado hoje.")
         return
 
     candidatos = []
@@ -89,10 +86,7 @@ def enviar_analises(bot):
 
     candidatos.sort(key=lambda x: x[1], reverse=True)
 
-    # ====================
-    # ENTRADAS SIMPLES
-    # ====================
-
+    # Simples
     for jogo, score in candidatos[:2]:
         mensagem = (
             f"📊 ANÁLISE AUTOMÁTICA\n\n"
@@ -100,15 +94,11 @@ def enviar_analises(bot):
             f"⚽ {jogo['casa']} x {jogo['fora']}\n\n"
             f"🔥 Score: {score}%\n"
             f"🎯 Mercado sugerido: Over 2.5\n"
-            f"📈 Perfil: Agressivo Controlado"
         )
 
-        bot.send_message(chat_id=GROUP_ID, text=mensagem)
+        await bot.send_message(chat_id=GROUP_ID, text=mensagem)
 
-    # ====================
-    # MÚLTIPLA
-    # ====================
-
+    # Múltipla
     if len(candidatos) >= 2 and candidatos[0][1] >= 85 and candidatos[1][1] >= 85:
         jogo1 = candidatos[0][0]
         jogo2 = candidatos[1][0]
@@ -116,24 +106,20 @@ def enviar_analises(bot):
         mensagem_multipla = (
             f"🔥 MÚLTIPLA DO DIA\n\n"
             f"1️⃣ {jogo1['casa']} x {jogo1['fora']} - Over 2.5\n"
-            f"2️⃣ {jogo2['casa']} x {jogo2['fora']} - Over 2.5\n\n"
-            f"⚡ Estratégia Agressiva"
+            f"2️⃣ {jogo2['casa']} x {jogo2['fora']} - Over 2.5\n"
         )
 
-        bot.send_message(chat_id=GROUP_ID, text=mensagem_multipla)
+        await bot.send_message(chat_id=GROUP_ID, text=mensagem_multipla)
 
 # ================================
 # MAIN
 # ================================
 
 def main():
-    updater = Updater(TOKEN)
+    app = Application.builder().token(TOKEN).build()
     print("Bot automático iniciado...")
-
-    enviar_analises(updater.bot)
-
-    updater.start_polling()
-    updater.idle()
+    app.create_task(enviar_analises())
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
